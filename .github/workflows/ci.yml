@@ -12,6 +12,8 @@ env:
 concurrency:
   group: ${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ${{ matrix.os }}
@@ -160,7 +162,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: matrix.node == 18
         with:
-          name: prebuilt-binaries-${{ matrix.variant }}-${{ matrix.target }}
+          name: prebuilt-binaries-${{ matrix.variant }}-${{ replace(matrix.target, '/', '-') }}
           path: prebuilds/*
           retention-days: 7
 
