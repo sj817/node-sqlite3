@@ -56,7 +56,6 @@ jobs:
         run: npm install -g yarn
 
       - name: Add setuptools for Python 3.12+ (temp)
-        if: matrix.host != 'arm64'
         run: python3 -m pip install setuptools
 
       - name: Add msbuild to PATH
