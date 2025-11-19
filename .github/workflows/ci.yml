@@ -33,7 +33,7 @@ jobs:
             node: 18
             host: x86
             target: x86
-          - os: macos-latest-xlarge
+          - os: macos-latest
             node: 18
             host: arm64
             target: arm64
@@ -42,7 +42,7 @@ jobs:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
 
       - uses: actions/setup-python@v5
-        if: matrix.os != 'macos-latest-xlarge'
+        if: matrix.host != 'arm64'
         with:
           python-version: "3.11"
 
@@ -52,11 +52,11 @@ jobs:
           architecture: ${{ matrix.host }}
 
       - name: Add yarn (self-hosted)
-        if: matrix.os == 'macos-latest-xlarge'
+        if: matrix.host == 'arm64' && contains(matrix.os, 'macos')
         run: npm install -g yarn
 
       - name: Add setuptools for Python 3.12+ (temp)
-        if: matrix.os != 'macos-latest-xlarge'
+        if: matrix.host != 'arm64'
         run: python3 -m pip install setuptools
 
       - name: Add msbuild to PATH
