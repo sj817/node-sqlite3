@@ -6,7 +6,7 @@ on:
     branches:
       - master
     tags:
-      - '*'
+      - "*"
 env:
   FORCE_COLOR: 1
 concurrency:
@@ -20,7 +20,7 @@ jobs:
       matrix:
         os:
           - macos-latest
-          - ubuntu-20.04
+          - ubuntu-latest
           - windows-latest
         host:
           - x64
@@ -33,25 +33,31 @@ jobs:
             node: 18
             host: x86
             target: x86
-          - os: macos-m1
+          - os: macos-latest-xlarge
             node: 18
             host: arm64
             target: arm64
     name: ${{ matrix.os }} (host=${{ matrix.host }}, target=${{ matrix.target }})
     steps:
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+
+      - uses: actions/setup-python@v5
+        if: matrix.os != 'macos-latest-xlarge'
+        with:
+          python-version: "3.11"
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
           architecture: ${{ matrix.host }}
 
       - name: Add yarn (self-hosted)
-        if: matrix.os == 'macos-m1'
+        if: matrix.os == 'macos-latest-xlarge'
         run: npm install -g yarn
 
-      - name: Add setuptools for Python 3.12 (temp)
-        if: matrix.os != 'macos-m1'
-        run: pip install setuptools
+      - name: Add setuptools for Python 3.12+ (temp)
+        if: matrix.os != 'macos-latest-xlarge'
+        run: python3 -m pip install setuptools
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.3
@@ -101,7 +107,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: matrix.node == 18
         with:
-          name: prebuilt-binaries
+          name: prebuilt-binaries-${{ matrix.os }}-${{ matrix.host }}-${{ matrix.target }}
           path: prebuilds/*
           retention-days: 7
 
@@ -155,7 +161,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: matrix.node == 18
         with:
-          name: prebuilt-binaries
+          name: prebuilt-binaries-${{ matrix.variant }}-${{ matrix.target }}
           path: prebuilds/*
           retention-days: 7
 
