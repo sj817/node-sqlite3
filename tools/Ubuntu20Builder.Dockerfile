@@ -10,18 +10,18 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Install build dependencies and Node.js
 RUN apt-get update && apt-get install -y \
-    build-essential \
-    python3 \
-    python3-pip \
-    git \
-    curl \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+  build-essential \
+  python3 \
+  python3-pip \
+  git \
+  curl \
+  ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js using NodeSource repository
 RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
+  && apt-get install -y nodejs \
+  && rm -rf /var/lib/apt/lists/*
 
 # Install yarn globally
 RUN npm install -g yarn
@@ -31,11 +31,14 @@ RUN node --version && npm --version && yarn --version && python3 --version
 
 WORKDIR /usr/src/build
 
-# Copy project files
-COPY . .
+# Copy package files first for better caching
+COPY package.json package-lock.json* yarn.lock* ./
 
-# Install dependencies
+# Install dependencies (cached unless package files change)
 RUN npm install --ignore-scripts
+
+# Copy source files
+COPY . .
 
 # Set compiler flags for GCC compatibility
 ENV CFLAGS="-include ../src/gcc-preinclude.h"
