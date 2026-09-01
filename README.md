@@ -1,6 +1,10 @@
 # ⚙️ node-sqlite3
 
-**Note:** This is a maintained fork of [TryGhost/node-sqlite3](https://github.com/TryGhost/node-sqlite3), which upstream has marked as unmaintained. It tracks upstream and adds extra prebuilt targets (`win32-ia32`, older GLIBC/musl Linux builds).
+**Note:** This is a fork of [TryGhost/node-sqlite3](https://github.com/TryGhost/node-sqlite3). It tracks upstream and adds extra prebuilt targets (`win32-ia32`, older GLIBC/musl Linux builds).
+
+**Upstream is no longer maintained.** TryGhost marked the repository unmaintained and its last release was v6.0.1; nothing but dependency lockfile churn has landed there since. Our v6.0.2 syncs everything upstream shipped, so barring a security fix in SQLite itself, **this is likely the final update to this fork.**
+
+An ESM/CJS distribution of these binaries is published to npm as [`@karinjs/sqlite3`](https://www.npmjs.com/package/@karinjs/sqlite3) and is built from [`esm/`](./esm) in this repository.
 
 ---
 Asynchronous, non-blocking [SQLite3](https://sqlite.org/) bindings for [Node.js](http://nodejs.org/).

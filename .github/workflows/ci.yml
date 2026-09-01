@@ -6,7 +6,10 @@ on:
     branches:
       - master
     tags:
-      - "*"
+      # Native release tags only. The ESM package uses esm-v* and is handled
+      # by npm-publish.yml; a bare "*" here would make that tag try to upload
+      # prebuilds to a release of its own.
+      - "v*"
 env:
   FORCE_COLOR: 1
 concurrency:
