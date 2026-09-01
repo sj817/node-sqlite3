@@ -8,14 +8,22 @@ import { extract } from 'tar'
 const name = 'sqlite3'
 
 /**
- * 原生包版本号,取自仓库根目录的 package.json。
- * 打 tag 发版后,这里会自动指向同名的 GitHub Release,不需要手动改。
+ * 要打包的版本号。
+ *
+ * 本包的版本号与原生 sqlite3 包对齐,所以这一个值同时决定三件事:
+ *   - 去哪个 GitHub Release 下二进制 (v${version})
+ *   - 发布出去的主包版本号
+ *   - 8 个平台子包的版本号
+ *
+ * 默认取仓库根目录 package.json 的版本号,也就是原生包最近一次发布的版本;
+ * 回补历史版本时用 SQLITE3_VERSION 覆盖,例如 SQLITE3_VERSION=5.1.9。
  */
-const nativeVersion = JSON.parse(
-  fs.readFileSync(fileURLToPath(new URL('../../package.json', import.meta.url)), 'utf-8')
-).version as string
+const version = process.env.SQLITE3_VERSION?.trim() ||
+  (JSON.parse(
+    fs.readFileSync(fileURLToPath(new URL('../../package.json', import.meta.url)), 'utf-8')
+  ).version as string)
 
-const url = `https://api.github.com/repos/sj817/node-sqlite3/releases/tags/v${nativeVersion}`
+const url = `https://api.github.com/repos/sj817/node-sqlite3/releases/tags/v${version}`
 
 // 'sqlite3-v5.1.7-napi-v3-linuxmusl-arm64.tar.gz'
 // name构成: sqlite3-v${version}-napi-v${napiVersion}-${platform}-${arch}.tar.gz
@@ -480,12 +488,13 @@ const checkNpmPublishFiles = async (dir: string) => {
  * 主函数
  */
 const main = async () => {
-  // 读取主包版本号
   const mainPkgPath = fileURLToPath(new URL('../package.json', import.meta.url))
   const mainPkg = JSON.parse(fs.readFileSync(mainPkgPath, 'utf-8'))
-  const currentVersion = mainPkg.version
-  console.log(`主包版本号: ${currentVersion}`)
-  console.log(`原生包版本号: ${nativeVersion}`)
+  const currentVersion = version
+  console.log(`发布版本号: ${currentVersion}`)
+  if (mainPkg.version !== currentVersion) {
+    console.log(`  (package.json 里是 ${mainPkg.version},将被改写为 ${currentVersion})`)
+  }
 
   // 从 URL 获取 JSON 列表
   const json = await fetchJsonList()
@@ -576,7 +585,8 @@ const main = async () => {
     optionalDependencies[pkgName] = currentVersion
   }
 
-  // 更新 package.json
+  // 更新 package.json:版本号与平台包一并对齐到 currentVersion
+  mainPkg.version = currentVersion
   mainPkg.optionalDependencies = optionalDependencies
 
   // 写回文件

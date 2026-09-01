@@ -2,11 +2,17 @@ name: Publish @karinjs/sqlite3
 
 # Publishes the ESM/CJS distribution in esm/ to npm.
 #
-# The binaries are not built here - they are downloaded from the GitHub Release
-# matching the version in the ROOT package.json (the native sqlite3 package).
-# So the order of a full release is:
-#   1. bump the root package.json, tag vX.Y.Z  -> ci.yml builds and uploads prebuilds
-#   2. bump esm/package.json, tag esm-vA.B.C   -> this workflow packages and publishes them
+# @karinjs/sqlite3 is versioned to match the native sqlite3 package, so one
+# version number picks the GitHub Release to download, the published main
+# package version, and the 8 platform package versions.
+#
+# The binaries are not built here - they come from the GitHub Release named
+# after that version, so the release has to exist first:
+#   1. bump the root package.json, tag vX.Y.Z   -> ci.yml builds and uploads prebuilds
+#   2. tag esm-vX.Y.Z (same X.Y.Z)              -> this workflow packages and publishes them
+#
+# To backfill an older release, run this manually with the version input set
+# (e.g. 5.1.9); it is passed through as SQLITE3_VERSION.
 #
 # Auth is npm trusted publishing (OIDC): no NPM_TOKEN. Every package published
 # here must have this repo + this workflow file registered as a trusted publisher
@@ -15,6 +21,10 @@ name: Publish @karinjs/sqlite3
 on:
   workflow_dispatch:
     inputs:
+      version:
+        description: "Version to package and publish (default: root package.json). Use this to backfill, e.g. 5.1.9"
+        type: string
+        required: false
       dry_run:
         description: "Build and pack everything, but do not publish"
         type: boolean
@@ -60,13 +70,14 @@ jobs:
         working-directory: esm
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SQLITE3_VERSION: ${{ inputs.version }}
         run: npm run build:package
 
       - name: Show what will be published
         working-directory: esm
         run: |
-          echo "native release: v$(node -p "require('../package.json').version")"
-          echo "esm package:    $(node -p "require('./package.json').version")"
+          echo "publishing @karinjs/sqlite3@$(node -p "require('./package.json').version")"
+          echo "binaries from release v$(node -p "require('./package.json').version")"
           node -p "JSON.stringify(require('./package.json').optionalDependencies, null, 2)"
 
       # Platform packages go first: the main package pins them as
