@@ -1,0 +1,102 @@
+name: Publish @karinjs/sqlite3
+
+# Publishes the ESM/CJS distribution in esm/ to npm.
+#
+# The binaries are not built here - they are downloaded from the GitHub Release
+# matching the version in the ROOT package.json (the native sqlite3 package).
+# So the order of a full release is:
+#   1. bump the root package.json, tag vX.Y.Z  -> ci.yml builds and uploads prebuilds
+#   2. bump esm/package.json, tag esm-vA.B.C   -> this workflow packages and publishes them
+#
+# Auth is npm trusted publishing (OIDC): no NPM_TOKEN. Every package published
+# here must have this repo + this workflow file registered as a trusted publisher
+# on npmjs.com - that is the main package plus all 8 platform packages.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build and pack everything, but do not publish"
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "esm-v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: npm-publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm >= 11.5.1, newer than what Node 22 bundles
+      - name: Upgrade npm
+        run: |
+          npm install -g npm@latest
+          npm --version
+
+      - name: Install dependencies
+        working-directory: esm
+        run: npm install
+
+      - name: Build ESM/CJS bundle
+        working-directory: esm
+        run: npm run build
+
+      - name: Download prebuilds and generate platform packages
+        working-directory: esm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build:package
+
+      - name: Show what will be published
+        working-directory: esm
+        run: |
+          echo "native release: v$(node -p "require('../package.json').version")"
+          echo "esm package:    $(node -p "require('./package.json').version")"
+          node -p "JSON.stringify(require('./package.json').optionalDependencies, null, 2)"
+
+      # Platform packages go first: the main package pins them as
+      # optionalDependencies at an exact version.
+      - name: Publish platform packages
+        working-directory: esm/packages
+        run: |
+          set -euo pipefail
+          for dir in */; do
+            [ -f "$dir/package.json" ] || continue
+            name=$(node -p "require('./$dir/package.json').name")
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              echo "== dry run: $name"
+              ( cd "$dir" && npm publish --access public --dry-run )
+            else
+              echo "== publishing: $name"
+              ( cd "$dir" && npm publish --access public )
+              curl -fsS -X PUT "https://registry-direct.npmmirror.com/-/package/$name/syncs" || \
+                echo "npmmirror sync failed for $name (non-fatal)"
+            fi
+          done
+
+      - name: Publish main package
+        working-directory: esm
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --dry-run
+          else
+            npm publish --access public
+            curl -fsS -X PUT "https://registry-direct.npmmirror.com/-/package/@karinjs/sqlite3/syncs" || \
+              echo "npmmirror sync failed (non-fatal)"
+          fi
