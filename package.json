@@ -53,6 +53,15 @@
     "mocha": "10.2.0",
     "prebuild": "13.0.1"
   },
+  "//node-gyp-override": "prebuild@13 pins node-gyp ^10, which cannot detect Visual Studio 2026 (18.x) and blows the PowerShell stdio buffer while trying. VS 2026 support landed in node-gyp 12.1.0. node-gyp 13 would work too but requires Node >=22.22.2, which drops our Node 20 baseline.",
+  "resolutions": {
+    "prebuild/node-gyp": "12.x"
+  },
+  "overrides": {
+    "prebuild": {
+      "node-gyp": "12.x"
+    }
+  },
   "peerDependencies": {
     "node-gyp": "12.x"
   },
