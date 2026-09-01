@@ -1,7 +1,7 @@
 {
   "name": "sqlite3",
   "description": "Asynchronous, non-blocking SQLite3 bindings",
-  "version": "5.1.9",
+  "version": "6.0.2",
   "homepage": "https://github.com/sj817/node-sqlite3",
   "author": {
     "name": "Mapbox",
@@ -44,17 +44,26 @@
   },
   "dependencies": {
     "bindings": "^1.5.0",
-    "node-addon-api": "^7.0.0",
-    "prebuild-install": "^7.1.1",
-    "tar": "^6.1.11"
+    "node-addon-api": "^8.0.0",
+    "prebuild-install": "^7.1.3",
+    "tar": "^7.5.10"
   },
   "devDependencies": {
     "eslint": "8.56.0",
     "mocha": "10.2.0",
-    "prebuild": "12.1.0"
+    "prebuild": "13.0.1"
+  },
+  "//node-gyp-override": "prebuild@13 pins node-gyp ^10, which cannot detect Visual Studio 2026 (18.x) and blows the PowerShell stdio buffer while trying. VS 2026 support landed in node-gyp 12.1.0. node-gyp 13 would work too but requires Node >=22.22.2, which drops our Node 20 baseline.",
+  "resolutions": {
+    "prebuild/node-gyp": "12.x"
+  },
+  "overrides": {
+    "prebuild": {
+      "node-gyp": "12.x"
+    }
   },
   "peerDependencies": {
-    "node-gyp": "8.x"
+    "node-gyp": "12.x"
   },
   "peerDependenciesMeta": {
     "node-gyp": {
@@ -62,7 +71,10 @@
     }
   },
   "optionalDependencies": {
-    "node-gyp": "8.x"
+    "node-gyp": "12.x"
+  },
+  "engines": {
+    "node": ">=20.17.0"
   },
   "scripts": {
     "install": "prebuild-install -r napi || node-gyp rebuild",

@@ -1,5 +1,8 @@
 # ⚙️ node-sqlite3
 
+**Note:** This is a maintained fork of [TryGhost/node-sqlite3](https://github.com/TryGhost/node-sqlite3), which upstream has marked as unmaintained. It tracks upstream and adds extra prebuilt targets (`win32-ia32`, older GLIBC/musl Linux builds).
+
+---
 Asynchronous, non-blocking [SQLite3](https://sqlite.org/) bindings for [Node.js](http://nodejs.org/).
 
 [![Latest release](https://img.shields.io/github/release/TryGhost/node-sqlite3.svg)](https://www.npmjs.com/package/sqlite3)
@@ -17,7 +20,7 @@ Asynchronous, non-blocking [SQLite3](https://sqlite.org/) bindings for [Node.js]
  - [Extension support](https://github.com/TryGhost/node-sqlite3/wiki/API#databaseloadextensionpath-callback), including bundled support for the [json1 extension](https://www.sqlite.org/json1.html)
  - Big test suite
  - Written in modern C++ and tested for memory leaks
- - Bundles SQLite v3.45.0, or you can build using a local SQLite
+ - Bundles SQLite v3.52.0, or you can build using a local SQLite
 
 # Installing
 
@@ -33,7 +36,7 @@ yarn add sqlite3
 
 ### Prebuilt binaries
 
-`sqlite3` v5+ was rewritten to use [Node-API](https://nodejs.org/api/n-api.html) so prebuilt binaries do not need to be built for specific Node versions. `sqlite3` currently builds for both Node-API v3 and v6. Check the [Node-API version matrix](https://nodejs.org/api/n-api.html#node-api-version-matrix) to ensure your Node version supports one of these. The prebuilt binaries should be supported on Node v10+.
+`sqlite3` v5+ was rewritten to use [Node-API](https://nodejs.org/api/n-api.html) so prebuilt binaries do not need to be built for specific Node versions. `sqlite3` currently builds for Node-API v6. Check the [Node-API version matrix](https://nodejs.org/api/n-api.html#node-api-version-matrix) to ensure your Node version supports one of these. The prebuilt binaries should be supported on Node v20.17.0+.
 
 The module uses [`prebuild-install`](https://github.com/prebuild/prebuild-install) to download the prebuilt binary for your platform, if it exists. These binaries are hosted on GitHub Releases for `sqlite3` versions above 5.0.2, and they are hosted on S3 otherwise. The following targets are currently provided:
 
@@ -244,7 +247,7 @@ We use [GitHub releases](https://github.com/TryGhost/node-sqlite3/releases) for 
 
 # Copyright & license
 
-Copyright (c) 2013-2025 Mapbox & Ghost Foundation
+Copyright (c) 2013-2026 Mapbox & Ghost Foundation
 
 `node-sqlite3` is [BSD licensed](https://github.com/tryghost/node-sqlite3/raw/master/LICENSE).
 

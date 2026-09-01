@@ -15,6 +15,8 @@ concurrency:
 permissions:
   contents: write
 jobs:
+  # macOS + Windows only. Linux prebuilds come from the Docker jobs below so
+  # they link against an older GLIBC than the GitHub-hosted Ubuntu runners.
   build:
     runs-on: ${{ matrix.os }}
     strategy:
@@ -28,36 +30,39 @@ jobs:
         target:
           - x64
         node:
-          - 18
+          - 20
+          - 22
+          - 24
+        exclude:
+          # Node 20 x64 crashes under Rosetta 2 on ARM64 macOS runners
+          - os: macos-latest
+            node: 20
+            host: x64
         include:
+          # Node 24 no longer ships 32-bit Windows binaries, so ia32 builds on Node 22
           - os: windows-latest
-            node: 18
+            node: 22
             host: x86
             target: x86
           - os: macos-latest
-            node: 18
+            node: 20
             host: arm64
             target: arm64
-    name: ${{ matrix.os }} (host=${{ matrix.host }}, target=${{ matrix.target }})
+          - os: macos-latest
+            node: 22
+            host: arm64
+            target: arm64
+          - os: macos-latest
+            node: 24
+            host: arm64
+            target: arm64
+    name: ${{ matrix.os }} (node=${{ matrix.node }}, host=${{ matrix.host }}, target=${{ matrix.target }})
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
-
-      - uses: actions/setup-python@v5
-        if: matrix.host != 'arm64'
-        with:
-          python-version: "3.11"
-
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node }}
           architecture: ${{ matrix.host }}
-
-      - name: Add yarn (self-hosted)
-        if: matrix.host == 'arm64' && contains(matrix.os, 'macos')
-        run: npm install -g yarn
-
-      - name: Add setuptools for Python 3.12+ (temp)
-        run: python3 -m pip install setuptools --break-system-packages
 
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v1.3
@@ -82,30 +87,15 @@ jobs:
             echo "TARGET=${{ matrix.target }}" >> $GITHUB_ENV
           fi
 
-      - name: Add Linux env vars
-        if: contains(matrix.os, 'ubuntu')
-        run: |
-          echo "CFLAGS=${CFLAGS:-} -include ../src/gcc-preinclude.h" >> $GITHUB_ENV
-          echo "CXXFLAGS=${CXXFLAGS:-} -include ../src/gcc-preinclude.h" >> $GITHUB_ENV
-
       - name: Build binaries
         run: yarn prebuild -a ${{ env.TARGET }}
-
-      - name: Print binary info
-        if: contains(matrix.os, 'ubuntu')
-        run: |
-          ldd build/**/node_sqlite3.node
-          echo "---"
-          nm build/**/node_sqlite3.node | grep "GLIBC_" | c++filt || true
-          echo "---"
-          file build/**/node_sqlite3.node
 
       - name: Run tests
         run: yarn test
 
       - name: Upload binaries to commit artifacts
-        uses: actions/upload-artifact@v4
-        if: matrix.node == 18
+        uses: actions/upload-artifact@v7
+        if: matrix.node == 24 || matrix.target == 'x86'
         with:
           name: prebuilt-binaries-${{ matrix.os }}-${{ matrix.host }}-${{ matrix.target }}
           path: prebuilds/*
@@ -113,15 +103,16 @@ jobs:
 
       - name: Upload binaries to GitHub Release
         run: yarn upload --upload-all ${{ github.token }}
-        if: matrix.node == 18 && startsWith(github.ref, 'refs/tags/')
+        if: (matrix.node == 24 || matrix.target == 'x86') && startsWith(github.ref, 'refs/tags/')
 
+  # Ubuntu 20.04 builds for older GLIBC compatibility
   build-linux-docker:
     runs-on: ${{ matrix.arch == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
         node:
-          - 18
+          - 20
         arch:
           - x64
           - arm64
@@ -132,7 +123,7 @@ jobs:
             platform: linux/arm64
     name: Ubuntu 20.04 (node=${{ matrix.node }}, arch=${{ matrix.arch }})
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -153,8 +144,7 @@ jobs:
           docker rm $CONTAINER_ID
 
       - name: Upload binaries to commit artifacts
-        uses: actions/upload-artifact@v4
-        if: matrix.node == 18
+        uses: actions/upload-artifact@v7
         with:
           name: prebuilt-binaries-ubuntu20-${{ matrix.arch }}
           path: prebuilds/*
@@ -162,7 +152,7 @@ jobs:
 
       - name: Upload binaries to GitHub Release
         run: yarn install --ignore-scripts && yarn upload --upload-all ${{ github.token }}
-        if: matrix.node == 18 && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
 
   # Alpine builds for musl libc compatibility (Docker/K8s use cases)
   build-alpine:
@@ -172,26 +162,26 @@ jobs:
       fail-fast: false
       matrix:
         node:
-          - 18
+          - 20
         config:
+          # Oldest Alpine with a node:20 image, for the widest musl compatibility
           - platform: linux/arm64
             arch: arm64
-            variant: alpine3.15
+            variant: alpine3.17
           - platform: linux/amd64
             arch: amd64
-            variant: alpine3.15
+            variant: alpine3.17
     name: ${{ matrix.config.variant }} (node=${{ matrix.node }}, arch=${{ matrix.config.arch }})
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Build binaries and test
         run: |
-          docker buildx build \
+          docker build \
             --file ./tools/BinaryBuilder.Dockerfile \
-            --load \
             --tag sqlite-builder \
             --platform ${{ matrix.config.platform }} \
             --cache-from type=gha,scope=alpine-${{ matrix.config.arch }} \
@@ -204,8 +194,7 @@ jobs:
           docker rm $CONTAINER_ID
 
       - name: Upload binaries to commit artifacts
-        uses: actions/upload-artifact@v4
-        if: matrix.node == 18
+        uses: actions/upload-artifact@v7
         with:
           name: prebuilt-binaries-${{ matrix.config.variant }}-${{ matrix.config.arch }}
           path: prebuilds/*
@@ -213,4 +202,4 @@ jobs:
 
       - name: Upload binaries to GitHub Release
         run: yarn install --ignore-scripts && yarn upload --upload-all ${{ github.token }}
-        if: matrix.node == 18 && startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/')
