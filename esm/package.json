@@ -1,6 +1,6 @@
 {
   "name": "@karinjs/sqlite3",
-  "version": "0.5.0",
+  "version": "6.0.2",
   "description": "Distribute the node files along with the SQLite3 file in ESM format.",
   "keywords": [
     "karinjs",
@@ -51,13 +51,13 @@
     }
   },
   "optionalDependencies": {
-    "@karinjs/sqlite3-napi-v6-darwin-arm64": "0.5.0",
-    "@karinjs/sqlite3-napi-v6-darwin-x64": "0.5.0",
-    "@karinjs/sqlite3-napi-v6-linux-arm64": "0.5.0",
-    "@karinjs/sqlite3-napi-v6-linux-x64": "0.5.0",
-    "@karinjs/sqlite3-napi-v6-linuxmusl-arm64": "0.5.0",
-    "@karinjs/sqlite3-napi-v6-linuxmusl-x64": "0.5.0",
-    "@karinjs/sqlite3-napi-v6-win32-ia32": "0.5.0",
-    "@karinjs/sqlite3-napi-v6-win32-x64": "0.5.0"
+    "@karinjs/sqlite3-napi-v6-darwin-arm64": "6.0.2",
+    "@karinjs/sqlite3-napi-v6-darwin-x64": "6.0.2",
+    "@karinjs/sqlite3-napi-v6-linux-arm64": "6.0.2",
+    "@karinjs/sqlite3-napi-v6-linux-x64": "6.0.2",
+    "@karinjs/sqlite3-napi-v6-linuxmusl-arm64": "6.0.2",
+    "@karinjs/sqlite3-napi-v6-linuxmusl-x64": "6.0.2",
+    "@karinjs/sqlite3-napi-v6-win32-ia32": "6.0.2",
+    "@karinjs/sqlite3-napi-v6-win32-x64": "6.0.2"
   }
 }
