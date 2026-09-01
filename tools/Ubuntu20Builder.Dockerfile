@@ -1,6 +1,6 @@
 # Dockerfile for building node-sqlite3 on Ubuntu 20.04
 # This is required to target older GLIBC versions since GitHub Actions no longer provides Ubuntu 20.04 runners
-ARG NODE_VERSION=18
+ARG NODE_VERSION=20
 
 # Use Ubuntu 20.04 as the base for older GLIBC compatibility
 FROM ubuntu:20.04
