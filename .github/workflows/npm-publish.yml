@@ -25,6 +25,10 @@ on:
         description: "Version to package and publish (default: root package.json). Use this to backfill, e.g. 5.1.9"
         type: string
         required: false
+      tag:
+        description: "npm dist-tag. Required when backfilling a version below the current latest, which npm refuses to tag implicitly (e.g. v5). Leave empty for a normal release."
+        type: string
+        required: false
       dry_run:
         description: "Build and pack everything, but do not publish"
         type: boolean
@@ -78,23 +82,34 @@ jobs:
         run: |
           echo "publishing @karinjs/sqlite3@$(node -p "require('./package.json').version")"
           echo "binaries from release v$(node -p "require('./package.json').version")"
+          echo "dist-tag: ${TAG:-latest (implicit)}"
           node -p "JSON.stringify(require('./package.json').optionalDependencies, null, 2)"
+        env:
+          TAG: ${{ inputs.tag }}
 
       # Platform packages go first: the main package pins them as
       # optionalDependencies at an exact version.
       - name: Publish platform packages
         working-directory: esm/packages
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
+          # npm refuses to implicitly move "latest" backwards, so backfilling a
+          # version below the current latest fails unless a tag is named.
+          # Not `[ -n "$TAG" ] && TAG_ARGS=(...)`: under `set -e` the whole && list
+          # returns non-zero on an empty TAG and kills every untagged release.
+          TAG_ARGS=()
+          if [ -n "${TAG:-}" ]; then TAG_ARGS=(--tag "$TAG"); fi
           for dir in */; do
             [ -f "$dir/package.json" ] || continue
             name=$(node -p "require('./$dir/package.json').name")
             if [ "${{ inputs.dry_run }}" = "true" ]; then
               echo "== dry run: $name"
-              ( cd "$dir" && npm publish --access public --dry-run )
+              ( cd "$dir" && npm publish --access public --dry-run "${TAG_ARGS[@]}" )
             else
               echo "== publishing: $name"
-              ( cd "$dir" && npm publish --access public )
+              ( cd "$dir" && npm publish --access public "${TAG_ARGS[@]}" )
               curl -fsS -X PUT "https://registry-direct.npmmirror.com/-/package/$name/syncs" || \
                 echo "npmmirror sync failed for $name (non-fatal)"
             fi
@@ -102,12 +117,18 @@ jobs:
 
       - name: Publish main package
         working-directory: esm
+        env:
+          TAG: ${{ inputs.tag }}
         run: |
           set -euo pipefail
+          # Not `[ -n "$TAG" ] && TAG_ARGS=(...)`: under `set -e` the whole && list
+          # returns non-zero on an empty TAG and kills every untagged release.
+          TAG_ARGS=()
+          if [ -n "${TAG:-}" ]; then TAG_ARGS=(--tag "$TAG"); fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            npm publish --access public --dry-run
+            npm publish --access public --dry-run "${TAG_ARGS[@]}"
           else
-            npm publish --access public
+            npm publish --access public "${TAG_ARGS[@]}"
             curl -fsS -X PUT "https://registry-direct.npmmirror.com/-/package/@karinjs/sqlite3/syncs" || \
               echo "npmmirror sync failed (non-fatal)"
           fi
